@@ -85,8 +85,7 @@ function encryptResponse(responseObj, aesKey, iv) {
 
 // ── Helper trả về encrypted response đúng spec Meta ──────────
 function sendEncrypted(res, responseObj, aesKey, iv) {
-  const flippedIv = Buffer.from(iv);
-  flippedIv[flippedIv.length - 1] ^= 0xFF;
+  const flippedIv = Buffer.from(iv).map(b => b ^ 0xFF);
 
   const cipher    = crypto.createCipheriv('aes-128-gcm', aesKey, flippedIv);
   const encrypted = Buffer.concat([
