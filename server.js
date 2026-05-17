@@ -12,9 +12,32 @@ const SHEET_NAME     = 'Sheet1';
 const CREDENTIALS    = JSON.parse(process.env.GOOGLE_CREDENTIALS || '{}');
 
 // Private key: ưu tiên env var, fallback đọc file (local dev)
-const PRIVATE_KEY = process.env.PRIVATE_KEY
-  ? process.env.PRIVATE_KEY.replace(/\\n/g, '\n')
-  : fs.readFileSync('private.pem', 'utf8');
+const PRIVATE_KEY = loadPrivateKey();
+
+// ── Load và validate Private Key ─────────────────────────────
+function loadPrivateKey() {
+  let key = process.env.PRIVATE_KEY
+    ? process.env.PRIVATE_KEY.replace(/\\n/g, '\n')
+    : fs.readFileSync('private.pem', 'utf8');
+
+  // Đảm bảo key có đủ header/footer
+  if (!key.includes('-----BEGIN')) {
+    throw new Error('PRIVATE_KEY env var bị lỗi format');
+  }
+
+  // Test thử key có dùng được không
+  try {
+    const testBuf = Buffer.from('test');
+    crypto.publicEncrypt(
+      { key: crypto.createPublicKey(key), padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+      testBuf
+    );
+  } catch(e) {
+    throw new Error('Private key load được nhưng không tạo được public key từ nó: ' + e.message);
+  }
+
+  return key;
+}
 
 // ── Google Sheets helper ──────────────────────────────────────
 async function appendToSheet(row) {
