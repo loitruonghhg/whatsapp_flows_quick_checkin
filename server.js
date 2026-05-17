@@ -127,13 +127,9 @@ app.post('/webhook', async (req, res) => {
     // ── Ping / health check ───────────────────────────────────
     if (action === 'ping' || action === 'health_check') {
       const response = {
-        screen: 'SUCCESS',
+        version: '3.0',
         data: {
-          extension_message_response: {
-            params: {
-              flow_token: payload.flow_token || ''
-            }
-          }
+          status: 'active'
         }
       };
       if (isEncrypted) {
