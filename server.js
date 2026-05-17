@@ -192,3 +192,19 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Running on port ${PORT}`));
+app.get('/debug-key', (req, res) => {
+  try {
+    const pubKey = crypto.createPublicKey(PRIVATE_KEY);
+    const der    = pubKey.export({ type: 'spki', format: 'der' });
+    const hash   = crypto.createHash('sha256').update(der).digest('hex');
+    res.json({
+      ok:          true,
+      key_length:  PRIVATE_KEY.length,
+      fingerprint: hash,
+      first_chars: PRIVATE_KEY.substring(0, 40),
+      last_chars:  PRIVATE_KEY.substring(PRIVATE_KEY.length - 40)
+    });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
