@@ -83,8 +83,26 @@ function encryptResponse(responseObj, aesKey, iv) {
   return Buffer.concat([encrypted, tag]).toString('base64');
 }
 
+// ── Helper trả về encrypted response đúng spec Meta ──────────
+function sendEncrypted(res, responseObj, aesKey, iv) {
+  const flippedIv = Buffer.from(iv);
+  flippedIv[flippedIv.length - 1] ^= 0xFF;
+
+  const cipher    = crypto.createCipheriv('aes-128-gcm', aesKey, flippedIv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(responseObj), 'utf-8'),
+    cipher.final()
+  ]);
+  const tag     = cipher.getAuthTag();
+  const base64  = Buffer.concat([encrypted, tag]).toString('base64');
+
+  // ✅ Trả raw Base64 string, KHÔNG bọc JSON
+  res.set('Content-Type', 'text/plain');
+  return res.send(base64);
+}
+
 // ── Routes ────────────────────────────────────────────────────
-app.get('/', (req, res) => res.json({ status: 'ok' }));
+app.get('/',        (req, res) => res.json({ status: 'ok' }));
 app.get('/webhook', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/webhook', async (req, res) => {
@@ -109,16 +127,13 @@ app.post('/webhook', async (req, res) => {
 
     // ── Ping / health check ───────────────────────────────────
     if (action === 'ping' || action === 'health_check') {
-      const response = { data: {} };
       if (isEncrypted) {
-        return res.json({
-          encrypted_flow_data: encryptResponse(response, aesKey, iv)
-        });
+        return sendEncrypted(res, { data: {} }, aesKey, iv);
       }
-      return res.json(response);
+      return res.json({ data: {} });
     }
 
-    // ── Data exchange: user submit form ───────────────────────
+    // ── Data exchange ─────────────────────────────────────────
     const flow_token    = payload.flow_token    || '';
     const full_name     = payload.full_name     || '';
     const phone         = payload.phone         || '';
@@ -143,15 +158,13 @@ app.post('/webhook', async (req, res) => {
     };
 
     if (isEncrypted) {
-      return res.json({
-        encrypted_flow_data: encryptResponse(response, aesKey, iv)
-      });
+      return sendEncrypted(res, response, aesKey, iv);
     }
     return res.json(response);
 
   } catch (err) {
     console.error('ERROR:', err.message, err.stack);
-    return res.status(500).json({ error: 'server_error' });
+    return res.status(500).send('server_error');
   }
 });
 
