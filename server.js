@@ -126,10 +126,20 @@ app.post('/webhook', async (req, res) => {
 
     // ── Ping / health check ───────────────────────────────────
     if (action === 'ping' || action === 'health_check') {
+      const response = {
+        screen: 'SUCCESS',
+        data: {
+          extension_message_response: {
+            params: {
+              flow_token: payload.flow_token || ''
+            }
+          }
+        }
+      };
       if (isEncrypted) {
-        return sendEncrypted(res, { data: {} }, aesKey, iv);
+        return sendEncrypted(res, response, aesKey, iv);
       }
-      return res.json({ data: {} });
+      return res.json(response);
     }
 
     // ── Data exchange ─────────────────────────────────────────
