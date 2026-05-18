@@ -139,12 +139,13 @@ app.post('/webhook', async (req, res) => {
     }
 
     // ── Data exchange ─────────────────────────────────────────
+    const formData      = payload.data          || {};
     const flow_token    = payload.flow_token    || '';
-    const full_name     = payload.full_name     || '';
-    const phone         = payload.phone         || '';
-    const date_of_birth = payload.date_of_birth || '';
-    const insurance     = payload.insurance     || '';
-    const email         = payload.email         || '';
+    const full_name     = formData.full_name     || '';
+    const phone         = formData.phone         || '';
+    const date_of_birth = formData.date_of_birth || '';
+    const insurance     = formData.insurance     || '';
+    const email         = formData.email         || '';
 
     await appendToSheet([
       new Date().toISOString(),
